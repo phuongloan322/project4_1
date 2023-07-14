@@ -1,4 +1,4 @@
-import { TodosAccess } from '../dataLayer/todosAcess'
+import { TodosAccess } from '../dataLayer/todosAcess';
 import { AttachmentUtils } from '../helpers/attachmentUtils';
 import { TodoItem } from '../models/TodoItem'
 import { CreateTodoRequest } from '../requests/CreateTodoRequest'
@@ -10,7 +10,13 @@ import * as uuid from 'uuid'
 // TODO: Implement businessLogic
 const logger = createLogger('TodosAccess')
 const attachmentUtils = new AttachmentUtils()
-const todosAccess = new TodosAccess()
+const todosAcess = new TodosAccess()
+
+//write get todo function
+export async function getTodosForUser(userId: string): Promise<TodoItem[]> {
+    logger.info('Calling getTodos function')
+    return todosAcess.getAllTodos(userId)
+}
 
 //write create todo function
 export async function createTodo(
@@ -30,5 +36,5 @@ export async function createTodo(
         attachmentUrl: s3AttachmentUrl,
         ...newTodo
     }
-    return await todosAccess.createTodoItem(newItem)
+    return await todosAcess.createTodoItem(newItem)
 }
