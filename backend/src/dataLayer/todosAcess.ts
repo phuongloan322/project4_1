@@ -1,11 +1,12 @@
 import * as AWS from 'aws-sdk'
-// import * as AWSXRay from 'aws-xray-sdk'
+//import * as AWSXRay from 'aws-xray-sdk'
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'
 import { createLogger } from '../utils/logger'
 import { TodoItem } from '../models/TodoItem'
-// import { TodoUpdate } from '../models/TodoUpdate';
+import { TodoUpdate } from '../models/TodoUpdate';
 
-const AWSXRay = require('aws-xray-sdk')
+var AWSXRay = require('aws-xray-sdk');
+
 const XAWS = AWSXRay.captureAWS(AWS)
 
 const logger = createLogger('TodosAccess')
@@ -16,17 +17,18 @@ export class TodosAccess {
         private readonly docClient: DocumentClient = new XAWS.DynamoDB.DocumentClient(),
         private readonly todosTable = process.env.TODOS_TABLE,
         private readonly todosIndex = process.env.INDEX_NAME
-    ) {}
+    ){}
+
     async getAllTodos(userId: string): Promise<TodoItem[]> {
-        logger.info('Get all todos function called')
+        logger.info('Getting all the todo function that is called')
 
         const result = await this.docClient
         .query({
             TableName: this.todosTable,
-            IndexName: this.todosIndex,
+            IndexName: this. todosIndex,
             KeyConditionExpression: 'userId = :userId',
             ExpressionAttributeValues: {
-            ':userId': userId
+                ':userId': userId
             }
         })
         .promise()
@@ -36,7 +38,7 @@ export class TodosAccess {
     }
 
     async createTodoItem(todoItem: TodoItem): Promise<TodoItem> {
-        logger.info('Create todo item function called')
+        logger.info('Calling create todo function')
 
         const result = await this.docClient
         .put({
@@ -45,73 +47,68 @@ export class TodosAccess {
         })
         .promise()
         logger.info('Todo item created', result)
-
-        return todoItem
+        return todoItem as TodoItem
     }
 
-    // async updateTodoItem(
-    //     todoId: string, 
-    //     userId: string, 
-    //     todoUpdate: TodoUpdate
-    //     ): Promise<TodoUpdate> {
-    //         logger.info('Call Update todo item func');
+    async updateTodoItem(
+        userId: string,
+        todoId: string,
+        todoUpdate: TodoUpdate
+    ): Promise<TodoUpdate> {
+        logger.info('Calling update todo function')
 
-    //         await this.docClient.update({
-    //             TableName: this.todosTable,
-    //             Key: {
-    //                 userId: userId,
-    //                 todoId: todoId
-    //             },
-    //             UpdateExpression: 'set #dynobase_name = :name, dueDate = :dueDate, done = :done',
-    //             ExpressionAttributeValues: {
-    //                 ':name': todoUpdate.name,
-    //                 ':dueDate': todoUpdate.dueDate,
-    //                 ':done': todoUpdate.done,
-    //         },
-    //         ExpressionAttributeNames: {
-    //         "#dynobase_name": "name"
-    //         },
-    //     }).promise()
+        const result = await this.docClient
+        .update({
+            TableName: this.todosTable,
+            Key: {
+            todoId,
+            userId
+            },
+            UpdateExpression: 'set #name = :name, dueDate = :dueDate, done = :done',
+            ExpressionAttributeValues: {
+            ':name': todoUpdate.name,
+            ':dueDate': todoUpdate.dueDate,
+            ':done': todoUpdate.done
+            },
+            ExpressionAttributeNames: {
+            '#name': 'name'
+            },
+            ReturnValues: 'ALL_NEW'
+        })
+        .promise()
 
-    //     logger.info('To do item updated')
-    //     return todoUpdate
-    // }
+        const todoItemUpdate = result.Attributes
+        logger.info('Todo item updated', todoItemUpdate)
+        return todoItemUpdate as TodoUpdate
+    }
 
-    // async updateAttachmentUrl(
-    //     todoId: string, 
-    //     userId: string,
-    //     uploadUrl: string): Promise<string> {
-    //     logger.info('call TodosAccess.updateTodo'+ uploadUrl);
-        
-    //     await this.docClient.update({
-    //         TableName: this.todosTable,
-    //         Key: {
-    //             userId: userId,
-    //             todoId: todoId
-    //         },
-    //         UpdateExpression: 'set attachmentUrl = :attachmentUrl',
-    //         ExpressionAttributeValues: {
-    //             ':attachmentUrl': uploadUrl.split("?")[0]
-    //         }
-    //     }).promise()
+    async deleteTodoItem(todoId: string, userId: string): Promise<string> {
+        logger.info('Delete todo function called')
 
-    //     logger.info('result: ' + uploadUrl);
-    //     return uploadUrl
-    // }
+        const result = await this.docClient
+        .delete({
+            TableName: this.todosTable,
+            Key: {
+            todoId,
+            userId
+            }
+        })
+        .promise()
+        logger.info('Todo item deleted', result)
+        return todoId as string
+    }
 
-    // async deleteTodoItem(
-    //     userId: string, 
-    //     todoId: string
-    //     ) {
-    //         logger.info('Delete todo item func called');
-    //         await this.docClient.delete({
-    //             TableName: this.todosTable,
-    //             Key: {
-    //                 userId: userId,
-    //                 todoId: todoId
-    //             }
-    //         }).promise()
-
-    //         logger.info('result: done');
-    // } 
+    async updateAttachmentUrl(todoId: string, userId: string, attachmentUrl: string): Promise<void> {
+        await this.docClient.update({
+          TableName: this.todosTable,
+          Key: {
+            todoId,
+            userId
+          },
+          UpdateExpression: 'set attachmentUrl = :attachmentUrl',
+          ExpressionAttributeValues:{
+              ':attachmentUrl': attachmentUrl
+          }
+        }).promise()
+      }
 }
